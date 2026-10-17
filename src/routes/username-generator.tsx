@@ -6,13 +6,17 @@ import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   DIGIT_COUNTS,
   formatUsername,
   generateParts,
+  PATTERN_CHOICES,
   STYLES,
   type DigitCount,
+  type GenerateOptions,
+  type PatternChoice,
   type Style,
   type UsernameParts,
 } from "@/lib/username/username"
@@ -21,26 +25,46 @@ import { pageTitle } from "@/lib/site"
 const TITLE = "Username Generator"
 const BATCH_SIZE = 10
 
-const defaultSearch = { style: "pascal", digits: 2 } as const
+const defaultSearch = {
+  pattern: "mix",
+  style: "pascal",
+  digits: 2,
+  alliterate: false,
+} as const
 
 const searchSchema = z.object({
+  pattern: z
+    .enum(PATTERN_CHOICES)
+    .default(defaultSearch.pattern)
+    .catch(defaultSearch.pattern),
   style: z.enum(STYLES).default(defaultSearch.style).catch(defaultSearch.style),
   digits: z
     .union(DIGIT_COUNTS.map((n) => z.literal(n)))
     .default(defaultSearch.digits)
     .catch(defaultSearch.digits),
+  alliterate: z
+    .boolean()
+    .default(defaultSearch.alliterate)
+    .catch(defaultSearch.alliterate),
 })
 
 export const Route = createFileRoute("/username-generator")({
   staticData: {
     title: TITLE,
-    description: "Random, friendly usernames like BraveOtter42.",
+    description: "Random, friendly usernames like BraveOtter42 or NorthStar17.",
   },
   validateSearch: searchSchema,
   search: { middlewares: [stripSearchParams(defaultSearch)] },
   head: () => ({ meta: [{ title: pageTitle(TITLE) }] }),
   component: UsernameGenerator,
 })
+
+const PATTERN_LABELS: Record<PatternChoice, string> = {
+  mix: "Mix",
+  animal: "Animal",
+  nature: "Nature",
+  color: "Color",
+}
 
 const STYLE_LABELS: Record<Style, string> = {
   pascal: "PascalCase",
@@ -55,18 +79,30 @@ const DIGIT_LABELS: Record<DigitCount, string> = {
   3: "3",
 }
 
-function generateBatch(): UsernameParts[] {
-  return Array.from({ length: BATCH_SIZE }, () => generateParts())
+function generateBatch(options: GenerateOptions): UsernameParts[] {
+  return Array.from({ length: BATCH_SIZE }, () => generateParts(options))
 }
 
 function UsernameGenerator() {
-  const { style, digits } = Route.useSearch()
+  const { pattern, style, digits, alliterate } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const [batch, setBatch] = useState(generateBatch)
+  const alliterateId = useId()
+
+  // Pattern and alliteration change which words are picked, so they reroll the
+  // batch; style and digits only reformat it.
+  const batchKey = `${pattern}:${String(alliterate)}`
+  const [state, setState] = useState(() => ({
+    key: batchKey,
+    batch: generateBatch({ pattern, alliterate }),
+  }))
+  if (state.key !== batchKey) {
+    setState({ key: batchKey, batch: generateBatch({ pattern, alliterate }) })
+  }
+  const { batch } = state
 
   const regenerate = useCallback(() => {
-    setBatch(generateBatch())
-  }, [])
+    setState({ key: batchKey, batch: generateBatch({ pattern, alliterate }) })
+  }, [batchKey, pattern, alliterate])
 
   // Space regenerates, unless focus is on something Space already activates.
   useEffect(() => {
@@ -105,11 +141,23 @@ function UsernameGenerator() {
           {TITLE}
         </h1>
         <p className="text-muted-foreground">
-          An adjective, an animal, and a number. Click a name to copy it.
+          Two words and a number. Click a name to copy it.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-x-8 gap-y-4">
+        <OptionGroup
+          label="Pattern"
+          options={PATTERN_CHOICES}
+          labels={PATTERN_LABELS}
+          value={pattern}
+          onChange={(next) => {
+            void navigate({
+              search: (prev) => ({ ...prev, pattern: next }),
+              replace: true,
+            })
+          }}
+        />
         <OptionGroup
           label="Style"
           options={STYLES}
@@ -134,6 +182,19 @@ function UsernameGenerator() {
             })
           }}
         />
+        <div className="flex items-center gap-2 self-end sm:h-8">
+          <Switch
+            id={alliterateId}
+            checked={alliterate}
+            onCheckedChange={(checked) => {
+              void navigate({
+                search: (prev) => ({ ...prev, alliterate: checked }),
+                replace: true,
+              })
+            }}
+          />
+          <Label htmlFor={alliterateId}>Alliterate</Label>
+        </div>
       </div>
 
       <ul className="divide-y overflow-hidden rounded-lg border">

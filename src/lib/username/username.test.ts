@@ -4,13 +4,21 @@ import {
   cryptoRandomInt,
   formatUsername,
   generateParts,
+  PATTERN_WORDS,
+  PATTERNS,
   type UsernameParts,
 } from "./username"
-import { ADJECTIVES, ANIMALS } from "./words"
+import {
+  ADJECTIVES,
+  ANIMALS,
+  COLORS,
+  NATURE_FIRSTS,
+  NATURE_SECONDS,
+} from "./words"
 
 const parts: UsernameParts = {
-  adjective: "Brave",
-  animal: "Otter",
+  first: "Brave",
+  second: "Otter",
   twoDigits: 42,
   threeDigits: 817,
 }
@@ -33,18 +41,22 @@ describe("formatUsername", () => {
 
 describe("generateParts", () => {
   it("uses the lowest values when randomness is all zeros", () => {
-    expect(generateParts(() => 0)).toEqual({
-      adjective: ADJECTIVES[0],
-      animal: ANIMALS[0],
+    expect(
+      generateParts({ pattern: "animal", alliterate: false }, () => 0),
+    ).toEqual({
+      first: ADJECTIVES[0],
+      second: ANIMALS[0],
       twoDigits: 10,
       threeDigits: 100,
     })
   })
 
   it("uses the highest values when randomness is maxed out", () => {
-    expect(generateParts((max) => max - 1)).toEqual({
-      adjective: ADJECTIVES.at(-1),
-      animal: ANIMALS.at(-1),
+    expect(
+      generateParts({ pattern: "nature", alliterate: false }, (max) => max - 1),
+    ).toEqual({
+      first: NATURE_FIRSTS.at(-1),
+      second: NATURE_SECONDS.at(-1),
       twoDigits: 99,
       threeDigits: 999,
     })
@@ -52,10 +64,61 @@ describe("generateParts", () => {
 
   it("never produces leading zeros with real randomness", () => {
     for (let i = 0; i < 1000; i++) {
-      const { twoDigits, threeDigits } = generateParts()
+      const { twoDigits, threeDigits } = generateParts({
+        pattern: "mix",
+        alliterate: false,
+      })
       expect(String(twoDigits)).toMatch(/^[1-9]\d$/)
       expect(String(threeDigits)).toMatch(/^[1-9]\d\d$/)
     }
+  })
+
+  it.each(PATTERNS)("draws %s words from that pattern's lists", (pattern) => {
+    const { firsts, seconds } = PATTERN_WORDS[pattern]
+    for (let i = 0; i < 200; i++) {
+      const { first, second } = generateParts({ pattern, alliterate: false })
+      expect(firsts).toContain(first)
+      expect(seconds).toContain(second)
+    }
+  })
+
+  it("mixes every pattern", () => {
+    const seen = new Set<string>()
+    for (let i = 0; i < 500; i++) {
+      const { first, second } = generateParts({
+        pattern: "mix",
+        alliterate: false,
+      })
+      for (const pattern of PATTERNS) {
+        const firsts: readonly string[] = PATTERN_WORDS[pattern].firsts
+        const seconds: readonly string[] = PATTERN_WORDS[pattern].seconds
+        if (firsts.includes(first) && seconds.includes(second)) {
+          seen.add(pattern)
+        }
+      }
+    }
+    expect([...seen].sort()).toEqual([...PATTERNS].sort())
+  })
+
+  it.each(["mix", ...PATTERNS] as const)(
+    "alliterates in %s pattern",
+    (pattern) => {
+      for (let i = 0; i < 300; i++) {
+        const { first, second } = generateParts({ pattern, alliterate: true })
+        expect(second[0]).toBe(first[0])
+      }
+    },
+  )
+
+  it("never pairs words that contain each other", () => {
+    // Blue + Bluejay is the known case: rig the first two rolls to pick it,
+    // then let later rolls fall through to the end of each list.
+    const rolls = [COLORS.indexOf("Blue"), ANIMALS.indexOf("Bluejay")]
+    const { first, second } = generateParts(
+      { pattern: "color", alliterate: false },
+      (max) => rolls.shift() ?? max - 1,
+    )
+    expect(`${first}${second}`).not.toBe("BlueBluejay")
   })
 })
 
@@ -75,11 +138,14 @@ describe("cryptoRandomInt", () => {
 })
 
 describe.each([
-  ["ADJECTIVES", ADJECTIVES],
-  ["ANIMALS", ANIMALS],
-])("%s word list", (_name, words: readonly string[]) => {
-  it("has at least 140 words", () => {
-    expect(words.length).toBeGreaterThanOrEqual(140)
+  ["ADJECTIVES", ADJECTIVES, 140],
+  ["ANIMALS", ANIMALS, 140],
+  ["NATURE_FIRSTS", NATURE_FIRSTS, 50],
+  ["NATURE_SECONDS", NATURE_SECONDS, 50],
+  ["COLORS", COLORS, 35],
+])("%s word list", (_name, words: readonly string[], minimum) => {
+  it(`has at least ${minimum} words`, () => {
+    expect(words.length).toBeGreaterThanOrEqual(minimum)
   })
 
   it("has no duplicates", () => {
@@ -92,5 +158,12 @@ describe.each([
 
   it("is sorted alphabetically", () => {
     expect(words).toEqual([...words].sort())
+  })
+})
+
+describe("nature word lists", () => {
+  it("don't share words, so a name can't repeat itself", () => {
+    const seconds = new Set<string>(NATURE_SECONDS)
+    expect(NATURE_FIRSTS.filter((w) => seconds.has(w))).toEqual([])
   })
 })

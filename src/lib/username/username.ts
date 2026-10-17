@@ -1,4 +1,10 @@
-import { ADJECTIVES, ANIMALS } from "./words"
+import {
+  ADJECTIVES,
+  ANIMALS,
+  COLORS,
+  NATURE_FIRSTS,
+  NATURE_SECONDS,
+} from "./words"
 
 export const STYLES = ["pascal", "lower", "snake", "kebab"] as const
 export type Style = (typeof STYLES)[number]
@@ -6,7 +12,29 @@ export type Style = (typeof STYLES)[number]
 export const DIGIT_COUNTS = [0, 2, 3] as const
 export type DigitCount = (typeof DIGIT_COUNTS)[number]
 
-export interface UsernameOptions {
+/** Each pattern pairs a list of first words with a list of second words. */
+export const PATTERN_WORDS = {
+  animal: { firsts: ADJECTIVES, seconds: ANIMALS }, // BraveOtter
+  nature: { firsts: NATURE_FIRSTS, seconds: NATURE_SECONDS }, // MapleLeaf
+  color: { firsts: COLORS, seconds: ANIMALS }, // IndigoOwl
+} as const satisfies Record<
+  string,
+  { firsts: readonly string[]; seconds: readonly string[] }
+>
+export type Pattern = keyof typeof PATTERN_WORDS
+export const PATTERNS = Object.keys(PATTERN_WORDS) as Pattern[]
+
+/** "mix" picks a random pattern for each username. */
+export const PATTERN_CHOICES = ["mix", ...PATTERNS] as const
+export type PatternChoice = (typeof PATTERN_CHOICES)[number]
+
+export interface GenerateOptions {
+  pattern: PatternChoice
+  /** Both words start with the same letter, e.g. SwiftSwan. */
+  alliterate: boolean
+}
+
+export interface FormatOptions {
   style: Style
   digits: DigitCount
 }
@@ -16,8 +44,8 @@ export interface UsernameOptions {
  * changing the style or digit count reformats the same name instead of rerolling it.
  */
 export interface UsernameParts {
-  adjective: string
-  animal: string
+  first: string
+  second: string
   /** 10–99, never a leading zero. */
   twoDigits: number
   /** 100–999, never a leading zero. */
@@ -48,12 +76,50 @@ function pick<T>(items: readonly T[], randomInt: RandomInt): T {
   return item
 }
 
+const initial = (word: string) => word.charAt(0)
+
+/** Avoids pairs like Blue + Bluejay that repeat themselves. */
+function overlaps(first: string, second: string) {
+  const a = first.toLowerCase()
+  const b = second.toLowerCase()
+  return a.includes(b) || b.includes(a)
+}
+
+function pickWords(
+  pattern: Pattern,
+  alliterate: boolean,
+  randomInt: RandomInt,
+): { first: string; second: string } {
+  const { firsts, seconds } = PATTERN_WORDS[pattern]
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (!alliterate) {
+      const first = pick(firsts, randomInt)
+      const second = pick(seconds, randomInt)
+      if (!overlaps(first, second)) return { first, second }
+      continue
+    }
+    // Only first words whose letter also starts some second word can alliterate.
+    const secondInitials = new Set(seconds.map(initial))
+    const first = pick(
+      firsts.filter((w) => secondInitials.has(initial(w))),
+      randomInt,
+    )
+    const second = pick(
+      seconds.filter((w) => initial(w) === initial(first)),
+      randomInt,
+    )
+    if (!overlaps(first, second)) return { first, second }
+  }
+  throw new Error(`Couldn't find a usable word pair for "${pattern}"`)
+}
+
 export function generateParts(
+  { pattern, alliterate }: GenerateOptions,
   randomInt: RandomInt = cryptoRandomInt,
 ): UsernameParts {
+  const resolved = pattern === "mix" ? pick(PATTERNS, randomInt) : pattern
   return {
-    adjective: pick(ADJECTIVES, randomInt),
-    animal: pick(ANIMALS, randomInt),
+    ...pickWords(resolved, alliterate, randomInt),
     twoDigits: 10 + randomInt(90),
     threeDigits: 100 + randomInt(900),
   }
@@ -61,7 +127,7 @@ export function generateParts(
 
 export function formatUsername(
   parts: UsernameParts,
-  { style, digits }: UsernameOptions,
+  { style, digits }: FormatOptions,
 ): string {
   const number =
     digits === 2
@@ -69,7 +135,7 @@ export function formatUsername(
       : digits === 3
         ? String(parts.threeDigits)
         : ""
-  const words = [parts.adjective, parts.animal]
+  const words = [parts.first, parts.second]
 
   switch (style) {
     case "pascal":

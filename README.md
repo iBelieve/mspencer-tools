@@ -4,7 +4,7 @@ Small, single-purpose browser tools, live at **[tools.mspencer.io](https://tools
 
 ## Tools
 
-- [Username Generator](https://tools.mspencer.io/username-generator): random, friendly usernames like `BraveOtter42`.
+- [Username Generator](https://tools.mspencer.io/username-generator): random, friendly usernames like `BraveOtter42` or `NorthStar17`, with Animal, Nature and Color patterns and an alliteration toggle.
 
 ## Development
 
