@@ -51,7 +51,8 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/username-generator")({
   staticData: {
     title: TITLE,
-    description: "Random, friendly usernames like BraveOtter42 or NorthStar17.",
+    description:
+      "Random, friendly usernames like BraveOtter42, NorthStar17 or CosmicComet88.",
   },
   validateSearch: searchSchema,
   search: { middlewares: [stripSearchParams(defaultSearch)] },
@@ -64,6 +65,7 @@ const PATTERN_LABELS: Record<PatternChoice, string> = {
   animal: "Animal",
   nature: "Nature",
   color: "Color",
+  space: "Space",
 }
 
 const STYLE_LABELS: Record<Style, string> = {

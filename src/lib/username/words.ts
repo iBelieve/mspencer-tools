@@ -2,7 +2,7 @@
 // Rules (enforced by tests): single words, 2–8 letters, Capitalized, sorted, no duplicates.
 
 /** Positive adjectives only — nothing about looks, weight, smarts, or anything crude. */
-export const ADJECTIVES = [
+const BASE_ADJECTIVES = [
   "Agile",
   "Amazing",
   "Amiable",
@@ -324,7 +324,7 @@ export const ANIMALS = [
 ] as const
 
 /** Nature pattern, first word: trees, plants, materials, seasons, times of day, directions (the Maple in MapleLeaf, the North in NorthStar). */
-export const NATURE_FIRSTS = [
+const BASE_NATURE_FIRSTS = [
   "Alder",
   "Apple",
   "Aspen",
@@ -503,3 +503,114 @@ export const COLORS = [
   "Topaz",
   "Violet",
 ] as const
+
+/** Space pattern, first word. Also mixed into the Animal and Nature first words (CosmicOtter, LunarMeadow). */
+export const SPACE_FIRSTS = [
+  "Astral",
+  "Astro",
+  "Atomic",
+  "Blazing",
+  "Cosmic",
+  "Electric",
+  "Ethereal",
+  "Galactic",
+  "Glowing",
+  "Infinite",
+  "Luminous",
+  "Lunar",
+  "Martian",
+  "Moonlit",
+  "Orbital",
+  "Polar",
+  "Quantum",
+  "Radiant",
+  "Rising",
+  "Skyward",
+  "Solar",
+  "Starlit",
+  "Starry",
+  "Stellar",
+  "Sunlit",
+] as const
+
+/** Space pattern, second word: celestial objects, named stars and planets, craft and crew. Skips Uranus, Probe, Cadet and brand names. No Cosmos or Galaxy, which would echo Cosmic and Galactic. */
+export const SPACE_SECONDS = [
+  "Apollo",
+  "Asteroid",
+  "Aurora",
+  "Beacon",
+  "Booster",
+  "Captain",
+  "Comet",
+  "Crater",
+  "Draco",
+  "Eclipse",
+  "Equinox",
+  "Explorer",
+  "Gravity",
+  "Halo",
+  "Horizon",
+  "Ion",
+  "Jupiter",
+  "Lander",
+  "Lumen",
+  "Lyra",
+  "Mars",
+  "Mercury",
+  "Meteor",
+  "Moon",
+  "Nebula",
+  "Neptune",
+  "Nova",
+  "Orbit",
+  "Orion",
+  "Phoenix",
+  "Photon",
+  "Pilot",
+  "Pioneer",
+  "Planet",
+  "Pluto",
+  "Polaris",
+  "Pulsar",
+  "Quark",
+  "Quasar",
+  "Ranger",
+  "Rocket",
+  "Rover",
+  "Saturn",
+  "Shuttle",
+  "Sirius",
+  "Solstice",
+  "Star",
+  "Stardust",
+  "Station",
+  "Sun",
+  "Titan",
+  "Vega",
+  "Venus",
+  "Vortex",
+  "Zenith",
+] as const
+
+/**
+ * First + second pairs that say the same thing twice. Pairs where one word
+ * contains the other (Moonlit + Moon) are already skipped automatically.
+ */
+export const ECHO_PAIRS: readonly (readonly [string, string])[] = [
+  ["Lunar", "Moon"],
+  ["Martian", "Mars"],
+  ["Solar", "Sun"],
+  ["Starlit", "Stardust"],
+  ["Starry", "Stardust"],
+]
+
+/** Merges word lists into one sorted list without duplicates. */
+function combine(...lists: readonly (readonly string[])[]): readonly string[] {
+  return [...new Set(lists.flat())].sort()
+}
+
+/** Animal pattern, first word: positive adjectives plus the space modifiers. */
+export const ADJECTIVES = combine(BASE_ADJECTIVES, SPACE_FIRSTS)
+
+/** Nature pattern, first word: nature modifiers plus the space modifiers. */
+export const NATURE_FIRSTS = combine(BASE_NATURE_FIRSTS, SPACE_FIRSTS)

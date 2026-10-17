@@ -12,8 +12,11 @@ import {
   ADJECTIVES,
   ANIMALS,
   COLORS,
+  ECHO_PAIRS,
   NATURE_FIRSTS,
   NATURE_SECONDS,
+  SPACE_FIRSTS,
+  SPACE_SECONDS,
 } from "./words"
 
 const parts: UsernameParts = {
@@ -120,6 +123,26 @@ describe("generateParts", () => {
     )
     expect(`${first}${second}`).not.toBe("BlueBluejay")
   })
+
+  it.each(ECHO_PAIRS)("never pairs %s with %s", (echoFirst, echoSecond) => {
+    // Find a pattern that could produce the pair, then rig the rolls to pick it.
+    const pattern = PATTERNS.find(
+      (p) =>
+        (PATTERN_WORDS[p].firsts as readonly string[]).includes(echoFirst) &&
+        (PATTERN_WORDS[p].seconds as readonly string[]).includes(echoSecond),
+    )
+    if (!pattern) throw new Error(`No pattern has ${echoFirst} + ${echoSecond}`)
+    const { firsts, seconds } = PATTERN_WORDS[pattern]
+    const rolls = [
+      (firsts as readonly string[]).indexOf(echoFirst),
+      (seconds as readonly string[]).indexOf(echoSecond),
+    ]
+    const { first, second } = generateParts(
+      { pattern, alliterate: false },
+      (max) => rolls.shift() ?? max - 1,
+    )
+    expect([first, second]).not.toEqual([echoFirst, echoSecond])
+  })
 })
 
 describe("cryptoRandomInt", () => {
@@ -143,6 +166,8 @@ describe.each([
   ["NATURE_FIRSTS", NATURE_FIRSTS, 50],
   ["NATURE_SECONDS", NATURE_SECONDS, 50],
   ["COLORS", COLORS, 35],
+  ["SPACE_FIRSTS", SPACE_FIRSTS, 20],
+  ["SPACE_SECONDS", SPACE_SECONDS, 45],
 ])("%s word list", (_name, words: readonly string[], minimum) => {
   it(`has at least ${minimum} words`, () => {
     expect(words.length).toBeGreaterThanOrEqual(minimum)
@@ -161,9 +186,21 @@ describe.each([
   })
 })
 
-describe("nature word lists", () => {
-  it("don't share words, so a name can't repeat itself", () => {
-    const seconds = new Set<string>(NATURE_SECONDS)
-    expect(NATURE_FIRSTS.filter((w) => seconds.has(w))).toEqual([])
+describe("pattern word lists", () => {
+  it.each(PATTERNS)(
+    "%s firsts and seconds don't share words, so a name can't repeat itself",
+    (pattern) => {
+      const seconds = new Set<string>(PATTERN_WORDS[pattern].seconds)
+      expect(
+        PATTERN_WORDS[pattern].firsts.filter((w) => seconds.has(w)),
+      ).toEqual([])
+    },
+  )
+
+  it.each([
+    ["ADJECTIVES", ADJECTIVES],
+    ["NATURE_FIRSTS", NATURE_FIRSTS],
+  ])("%s includes every space modifier", (_name, words) => {
+    for (const word of SPACE_FIRSTS) expect(words).toContain(word)
   })
 })

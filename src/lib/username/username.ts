@@ -2,8 +2,11 @@ import {
   ADJECTIVES,
   ANIMALS,
   COLORS,
+  ECHO_PAIRS,
   NATURE_FIRSTS,
   NATURE_SECONDS,
+  SPACE_FIRSTS,
+  SPACE_SECONDS,
 } from "./words"
 
 export const STYLES = ["pascal", "lower", "snake", "kebab"] as const
@@ -17,6 +20,7 @@ export const PATTERN_WORDS = {
   animal: { firsts: ADJECTIVES, seconds: ANIMALS }, // BraveOtter
   nature: { firsts: NATURE_FIRSTS, seconds: NATURE_SECONDS }, // MapleLeaf
   color: { firsts: COLORS, seconds: ANIMALS }, // IndigoOwl
+  space: { firsts: SPACE_FIRSTS, seconds: SPACE_SECONDS }, // CosmicComet
 } as const satisfies Record<
   string,
   { firsts: readonly string[]; seconds: readonly string[] }
@@ -78,11 +82,13 @@ function pick<T>(items: readonly T[], randomInt: RandomInt): T {
 
 const initial = (word: string) => word.charAt(0)
 
-/** Avoids pairs like Blue + Bluejay that repeat themselves. */
+const echoPairs = new Set(ECHO_PAIRS.map(([a, b]) => `${a}+${b}`))
+
+/** Avoids pairs that repeat themselves, like Blue + Bluejay or Martian + Mars. */
 function overlaps(first: string, second: string) {
   const a = first.toLowerCase()
   const b = second.toLowerCase()
-  return a.includes(b) || b.includes(a)
+  return a.includes(b) || b.includes(a) || echoPairs.has(`${first}+${second}`)
 }
 
 function pickWords(
