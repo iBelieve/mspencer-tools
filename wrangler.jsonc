@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mspencer-tools",
+  "compatibility_date": "2026-10-17",
+  // Static SPA: no Worker script, just assets. Unknown paths serve index.html
+  // so TanStack Router can handle them client-side.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+  },
+  "routes": [{ "pattern": "tools.mspencer.io", "custom_domain": true }],
+}
