@@ -9,4 +9,7 @@
     "not_found_handling": "single-page-application",
   },
   "routes": [{ "pattern": "tools.mspencer.io", "custom_domain": true }],
+  // Workers Builds runs `wrangler preview` on non-production branches.
+  // The block can be empty; this Worker has no Preview-only settings.
+  "previews": {},
 }

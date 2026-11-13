@@ -8,7 +8,7 @@ Small, single-purpose browser tools, live at **[tools.mspencer.io](https://tools
 
 ## Development
 
-You'll need Node 26 or later (the exact version is in `.node-version`) and pnpm (the exact version is pinned in `package.json`).
+You'll need Node 26 (`.node-version` tracks that LTS line) and pnpm (the exact version is pinned in `package.json`).
 
 ```sh
 pnpm install
