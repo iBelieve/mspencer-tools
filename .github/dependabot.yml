@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # pnpm: Dependabot's npm ecosystem reads package.json and pnpm-lock.yaml.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # One day, matching pnpm 12's default minimumReleaseAge of 1440 minutes.
+    # This repo does not override that setting.
+    cooldown:
+      default-days: 1
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 1
+    groups:
+      actions-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
